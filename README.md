@@ -61,10 +61,10 @@ Then add your API keys to the `.env` file. Here are examples:
 OPENAI_API_KEY=sk-your-actual-key-here
 ```
 
-**Example 2: Using OpenAI (Harvard Endpoint)**
+**Example 2: Using OpenAI (Custom/Institutional Endpoint)**
 ```bash
-OPENAI_API_KEY=your_harvard_key_here
-OPENAI_API_BASE=https://go.apis.huit.harvard.edu/ais-openai-direct/v1
+OPENAI_API_KEY=your_institution_key_here
+OPENAI_API_BASE=https://your-institution-endpoint.com/v1
 ```
 
 **Example 3: Using Anthropic**
@@ -81,7 +81,7 @@ GOOGLE_API_KEY=your-google-api-key-here
 
 **Important Notes:**
 - You only need **one** API key (OpenAI, Anthropic, or Google) - choose whichever you prefer
-- If using Harvard OpenAI endpoint, include both `OPENAI_API_KEY` and `OPENAI_API_BASE`
+- If using a custom or institutional OpenAI endpoint, include both `OPENAI_API_KEY` and `OPENAI_API_BASE`
 - If using standard OpenAI, you only need `OPENAI_API_KEY` (no `OPENAI_API_BASE` needed)
 - The `.env` file should be in the same directory where you run the Docker commands
 
