@@ -2,6 +2,18 @@
 
 # Script to run SpikeAgent CPU Docker container and open browser automatically
 # Uses the published image from GitHub Container Registry
+#
+# Usage:
+#   ./run-spikeagent.sh [volume_path1] [volume_path2] ...
+#
+# Examples:
+#   ./run-spikeagent.sh
+#   ./run-spikeagent.sh /path/to/data
+#   ./run-spikeagent.sh /path/to/data1 /path/to/data2 /path/to/results
+#
+# Volume mounts:
+#   Each argument will be mounted as: -v {path}:{path}
+#   This allows the container to access your local data directories
 
 set -e
 
@@ -9,6 +21,45 @@ IMAGE="ghcr.io/arnaumarin/spikeagent-cpu:latest"
 URL="http://localhost:8501"
 CONTAINER_NAME="spikeagent"
 MAX_WAIT=60  # Maximum seconds to wait for app to be ready
+
+# Check for help flag
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "Usage: $0 [volume_path1] [volume_path2] ..."
+    echo ""
+    echo "Options:"
+    echo "  -h, --help    Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                                    # Run without volume mounts"
+    echo "  $0 /path/to/data                     # Mount a single directory"
+    echo "  $0 /path/to/data1 /path/to/data2     # Mount multiple directories"
+    echo "  $0 ./data ./results                  # Mount relative paths"
+    echo ""
+    echo "Volume mounts:"
+    echo "  Each path argument will be mounted as: -v {absolute_path}:{absolute_path}"
+    echo "  This allows the container to access your local data directories."
+    echo "  Paths are automatically converted to absolute paths."
+    exit 0
+fi
+
+# Parse volume mount arguments
+VOLUME_MOUNTS=()
+for path in "$@"; do
+    # Check if path exists (warn if it doesn't, but still add it)
+    if [ ! -e "$path" ]; then
+        echo "⚠️  Warning: Path does not exist: $path"
+        echo "   It will still be mounted, but may not be accessible."
+    fi
+    # Convert to absolute path
+    if [[ "$path" = /* ]]; then
+        # Already absolute path
+        abs_path="$path"
+    else
+        # Relative path - convert to absolute
+        abs_path="$(cd "$(dirname "$path")" 2>/dev/null && pwd)/$(basename "$path")" || abs_path="$(pwd)/$path"
+    fi
+    VOLUME_MOUNTS+=("-v" "$abs_path:$abs_path")
+done
 
 echo "🚀 Starting SpikeAgent..."
 echo "=========================================="
@@ -80,11 +131,24 @@ echo ""
 
 # Step 5: Run the container
 echo "🐳 Step 5: Starting container..."
-docker run --rm -d \
-    -p 8501:8501 \
-    --name ${CONTAINER_NAME} \
-    --env-file .env \
-    ${IMAGE}
+if [ ${#VOLUME_MOUNTS[@]} -gt 0 ]; then
+    echo "   Mounting volumes:"
+    for ((i=0; i<${#VOLUME_MOUNTS[@]}; i+=2)); do
+        echo "     - ${VOLUME_MOUNTS[i+1]}"
+    done
+    docker run --rm -d \
+        -p 8501:8501 \
+        --name ${CONTAINER_NAME} \
+        --env-file .env \
+        "${VOLUME_MOUNTS[@]}" \
+        ${IMAGE}
+else
+    docker run --rm -d \
+        -p 8501:8501 \
+        --name ${CONTAINER_NAME} \
+        --env-file .env \
+        ${IMAGE}
+fi
 
 if [ $? -eq 0 ]; then
     echo "   ✓ Container started successfully"
@@ -158,6 +222,13 @@ echo "   Stop container:   docker stop ${CONTAINER_NAME}"
 echo "   Check status:     docker ps --filter name=${CONTAINER_NAME}"
 echo "   View container:   docker inspect ${CONTAINER_NAME}"
 echo ""
+if [ ${#VOLUME_MOUNTS[@]} -gt 0 ]; then
+    echo "📁 Mounted volumes:"
+    for ((i=0; i<${#VOLUME_MOUNTS[@]}; i+=2)); do
+        echo "   ${VOLUME_MOUNTS[i+1]}"
+    done
+    echo ""
+fi
 echo "🔗 Package information:"
 echo "   https://github.com/arnaumarin/SpikeAgent/pkgs/container/spikeagent-cpu"
 echo ""

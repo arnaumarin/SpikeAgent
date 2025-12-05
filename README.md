@@ -90,12 +90,41 @@ GOOGLE_API_KEY=your-google-api-key-here
 **Option A: Using the automated script (Easiest):**
 
 ```bash
-# Run the script - it handles everything automatically
+# Run without volume mounts (if you don't need to access local data)
 ./run-spikeagent.sh
+
+# Run with volume mounts (to access your data directories)
+./run-spikeagent.sh /path/to/your/data /path/to/results
 ```
+
+**Volume Mounts (Optional but Recommended):**
+
+If you need SpikeAgent to access your local data files, you should mount your data directories when running the script:
+
+```bash
+# Mount a single data directory
+./run-spikeagent.sh /path/to/your/raw/data
+
+# Mount multiple directories (e.g., raw data and results folder)
+./run-spikeagent.sh /path/to/raw/data /path/to/processed/results
+
+# Mount relative paths (automatically converted to absolute)
+./run-spikeagent.sh ./data ./results
+```
+
+**Why mount volumes?**
+- SpikeAgent needs access to your raw electrophysiology data files
+- You may want to save processed results to a specific location
+- Config files (YAML) and other data should be accessible to the container
+
+**What paths should you mount?**
+- **Raw data directory**: Where your experimental data files are stored (e.g., `.rhd`, SpikeGLX files, etc.)
+- **Results/output directory**: Where you want processed data and results saved
+- **Config directory**: If you have YAML configuration files (optional)
 
 The script will:
 - Pull the latest image from GitHub
+- Mount your specified directories (if provided)
 - Start the container
 - Wait for the application to be ready
 - Open your browser automatically
@@ -106,8 +135,14 @@ The script will:
 # Pull the latest CPU image
 docker pull ghcr.io/arnaumarin/spikeagent-cpu:latest
 
-# Run the container
+# Run without volume mounts
 docker run --rm -p 8501:8501 --env-file .env ghcr.io/arnaumarin/spikeagent-cpu:latest
+
+# Run with volume mounts (to access your data)
+docker run --rm -p 8501:8501 --env-file .env \
+  -v /path/to/your/data:/path/to/your/data \
+  -v /path/to/results:/path/to/results \
+  ghcr.io/arnaumarin/spikeagent-cpu:latest
 ```
 
 **Step 3: Access the application**
