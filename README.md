@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/spikeagent_logo.png" alt="SpikeAgent Logo" width="300" style="display:block; margin:auto; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,0.1)">
+  <img src="docs/spikeagent_logo.png" alt="SpikeAgent Logo" width="150" style="display:block; margin:auto; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,0.1)">
 </p>
 
 <!--
