@@ -2,7 +2,10 @@
 import os
 import json
 import inspect
+import subprocess
+import shutil
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 
 import streamlit as st
@@ -31,6 +34,75 @@ for name in ['get_guidance_on_rigid_curation', 'get_guidance_on_vlm_curation',
 
 # Load environment
 load_dotenv()
+
+# Helper functions for dynamic mounting
+def check_mount_capabilities():
+    """Check if container has mount capabilities"""
+    try:
+        # Check if we can read /proc/self/status for capabilities
+        with open('/proc/self/status', 'r') as f:
+            status = f.read()
+            if 'CapEff:' in status:
+                # Check if we have SYS_ADMIN capability (needed for mount)
+                try:
+                    result = subprocess.run(['capsh', '--print'], 
+                                          capture_output=True, text=True, timeout=2)
+                    if 'SYS_ADMIN' in result.stdout or '=ep' in result.stdout:
+                        return True
+                except (FileNotFoundError, subprocess.TimeoutExpired):
+                    pass
+    except:
+        pass
+    
+    # Fallback: try to check if we're in privileged mode
+    try:
+        # Check if /proc/sys/kernel/core_pattern is writable (indicator of privileges)
+        test_path = '/proc/sys/kernel/core_pattern'
+        if os.access(test_path, os.W_OK):
+            return True
+    except:
+        pass
+    
+    return False
+
+def try_mount_path(host_path, container_path=None):
+    """Try to mount a path using bind mount"""
+    if container_path is None:
+        # Use same path in container
+        container_path = host_path
+    
+    # Create mount point if it doesn't exist
+    try:
+        os.makedirs(container_path, exist_ok=True)
+    except:
+        pass
+    
+    try:
+        # Try bind mount
+        result = subprocess.run(
+            ['mount', '--bind', host_path, container_path],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            return True, f"Successfully mounted {host_path}"
+        else:
+            return False, f"Mount failed: {result.stderr}"
+    except subprocess.TimeoutExpired:
+        return False, "Mount operation timed out"
+    except FileNotFoundError:
+        return False, "mount command not available"
+    except Exception as e:
+        return False, f"Mount error: {str(e)}"
+
+def generate_restart_command(paths):
+    """Generate the restart command with volume mounts"""
+    if isinstance(paths, str):
+        paths = [paths]
+    paths_str = " ".join([f'"{p}"' if " " in p else p for p in paths if p])
+    return f'./run-spikeagent.sh {paths_str}'
+
 # Streamlit setup
 st.set_page_config(layout='wide')
 _app_dir = os.path.dirname(os.path.abspath(__file__))
@@ -230,8 +302,80 @@ with st.sidebar.expander("#### Pipeline Settings", expanded=False, icon="⚙️"
     autorun_dir = os.path.join(_app_dir, 'autorun_parameters')
     default_params = read_config(file, autorun_dir)
 
-    raw_path = st.text_input("📂 Raw data path", value=default_params[0])
-    save_path = st.text_input("📁 Save_path", value=default_params[1])
+    # Raw Data Path
+    st.markdown("**📂 Raw Data Path**")
+    raw_path_value = st.session_state.get("raw_path_input", default_params[0])
+    raw_path = st.text_input(
+        "Raw data path", 
+        value=raw_path_value,
+        key="raw_path_input",
+        label_visibility="collapsed",
+        placeholder="Enter path to your data..."
+    )
+    
+    # Validate raw_path
+    if raw_path:
+        if os.path.exists(raw_path):
+            st.success(f"✅ Path accessible: `{raw_path}`")
+        else:
+            st.warning(f"⚠️ Path not found: `{raw_path}`")
+            st.info("""
+            **📌 Note:** Docker containers cannot mount new volumes at runtime. 
+            You need to restart the container with this path mounted.
+            """)
+            
+            # Show restart command
+            with st.expander("🔧 How to mount this path", expanded=True):
+                st.markdown("**Option 1: Restart with this path**")
+                cmd = generate_restart_command([raw_path])
+                st.code(cmd, language="bash")
+                st.caption("This will stop the current container and restart it with the new mount.")
+                
+                st.markdown("**Option 2: Add to existing mounts (preserves current mounts)**")
+                # Escape the path for shell if it contains spaces
+                escaped_path = raw_path.replace(" ", "\\ ") if " " in raw_path else raw_path
+                st.code(f"./restart-spikeagent-with-mounts.sh {escaped_path}", language="bash")
+                st.caption("Use the helper script to add this path to existing mounts without losing current ones.")
+                
+                # Try to detect existing mounts and suggest adding to them
+                try:
+                    # Check if we can detect container name
+                    container_id = os.environ.get('HOSTNAME', '')
+                    if container_id:
+                        st.markdown("**Current container:**")
+                        st.code(f"docker ps --filter name=spikeagent", language="bash")
+                except:
+                    pass
+    
+    # Save Path with validation
+    st.markdown("**📁 Save Path**")
+    save_path = st.text_input("Save_path", value=default_params[1], key="save_path_input")
+    
+    if save_path:
+        if os.path.exists(save_path):
+            st.success(f"✅ Path accessible: `{save_path}`")
+        else:
+            # Try to create it
+            try:
+                os.makedirs(save_path, exist_ok=True)
+                st.info(f"📁 Created save path: `{save_path}`")
+            except Exception as e:
+                st.warning(f"⚠️ Cannot create save path: {e}")
+                parent_dir = os.path.dirname(save_path) if save_path else "/tmp"
+                st.info("""
+                **📌 Note:** Docker containers cannot mount new volumes at runtime. 
+                You need to restart the container with this path mounted.
+                """)
+                
+                with st.expander("🔧 How to mount this path", expanded=True):
+                    st.markdown("**Option 1: Restart with this path**")
+                    cmd = generate_restart_command([parent_dir])
+                    st.code(cmd, language="bash")
+                    
+                    st.markdown("**Option 2: Add to existing mounts (preserves current mounts)**")
+                    escaped_path = parent_dir.replace(" ", "\\ ") if " " in parent_dir else parent_dir
+                    st.code(f"./restart-spikeagent-with-mounts.sh {escaped_path}", language="bash")
+    
     is_npix = st.checkbox("Is it neuropixel data?", value=default_params[2], key="ch1")
     commands = st.text_area("⚙️ Additional inputs", value=default_params[3], height=150)
 
@@ -345,6 +489,7 @@ render_conversation_history([
     m for i, m in enumerate(st.session_state.final_state["messages"])
     if i not in st.session_state.not_render_idx
 ])
+
 
 prompt = st.session_state.get("audio_transcription") or st.chat_input()
         
