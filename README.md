@@ -166,11 +166,32 @@ docker build -f docker_files/Dockerfile.gpu -t spikeagent:gpu .
 docker run --rm --gpus all -p 8501:8501 --env-file .env spikeagent:gpu
 ```
 
+**Adding Volume Mounts After Startup:**
+
+If you need to access a data path that wasn't mounted when you started the container:
+
+```bash
+# Restart with additional mounts (preserves existing mounts)
+./restart-spikeagent-with-mounts.sh /path/to/new/data
+
+# You can add multiple paths at once
+./restart-spikeagent-with-mounts.sh /path/to/data1 /path/to/data2
+```
+
+The helper script will:
+- Stop the current container
+- Preserve all existing volume mounts
+- Add your new paths
+- Restart the container
+
+**Note:** Docker containers cannot mount new volumes at runtime - a restart is required. The app UI will show you the exact command to run if it detects an unmounted path.
+
 **Troubleshooting:**
 
 - **Port already in use?** Make sure port 8501 is free, or stop any existing containers: `docker stop spikeagent`
 - **Can't pull image?** The image is public, so no authentication needed. If you have issues, make sure Docker is running.
 - **ARM64/Apple Silicon (M1/M2/M3 Mac)?** If you get "no matching manifest for linux/arm64" error, the run script will automatically detect this and build the image locally for you. The first build may take 10-20 minutes. Once multi-arch images are available, this will no longer be necessary.
+- **Path not accessible in app?** If you see a warning about a path not being found, use `./restart-spikeagent-with-mounts.sh /path/to/data` to add it. The app will show you the exact command to use.
 - **API connection errors?** Double-check your `.env` file has the correct API keys and is in the same directory as your Docker command.
 
 ## Open Source Neural Data

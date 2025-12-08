@@ -319,23 +319,33 @@ with st.sidebar.expander("#### Pipeline Settings", expanded=False, icon="⚙️"
             st.success(f"✅ Path accessible: `{raw_path}`")
         else:
             st.warning(f"⚠️ Path not found: `{raw_path}`")
-            # Offer to try mounting
-            if st.button("🔗 Try to Mount", key="mount_raw_path"):
-                has_caps = check_mount_capabilities()
-                if has_caps:
-                    success, message = try_mount_path(raw_path)
-                    if success:
-                        st.success(message)
-                        if os.path.exists(raw_path):
-                            st.rerun()
-                    else:
-                        st.error(message)
-                else:
-                    st.warning("Container doesn't have mount capabilities.")
-                
-                st.info("**Or restart container with:**")
+            st.info("""
+            **📌 Note:** Docker containers cannot mount new volumes at runtime. 
+            You need to restart the container with this path mounted.
+            """)
+            
+            # Show restart command
+            with st.expander("🔧 How to mount this path", expanded=True):
+                st.markdown("**Option 1: Restart with this path**")
                 cmd = generate_restart_command([raw_path])
                 st.code(cmd, language="bash")
+                st.caption("This will stop the current container and restart it with the new mount.")
+                
+                st.markdown("**Option 2: Add to existing mounts (preserves current mounts)**")
+                # Escape the path for shell if it contains spaces
+                escaped_path = raw_path.replace(" ", "\\ ") if " " in raw_path else raw_path
+                st.code(f"./restart-spikeagent-with-mounts.sh {escaped_path}", language="bash")
+                st.caption("Use the helper script to add this path to existing mounts without losing current ones.")
+                
+                # Try to detect existing mounts and suggest adding to them
+                try:
+                    # Check if we can detect container name
+                    container_id = os.environ.get('HOSTNAME', '')
+                    if container_id:
+                        st.markdown("**Current container:**")
+                        st.code(f"docker ps --filter name=spikeagent", language="bash")
+                except:
+                    pass
     
     # Save Path with validation
     st.markdown("**📁 Save Path**")
@@ -351,18 +361,20 @@ with st.sidebar.expander("#### Pipeline Settings", expanded=False, icon="⚙️"
                 st.info(f"📁 Created save path: `{save_path}`")
             except Exception as e:
                 st.warning(f"⚠️ Cannot create save path: {e}")
-                if st.button("🔗 Try to Mount", key="mount_save_path"):
-                    has_caps = check_mount_capabilities()
-                    parent_dir = os.path.dirname(save_path) if save_path else "/tmp"
-                    if has_caps:
-                        success, message = try_mount_path(parent_dir)
-                        if success:
-                            st.success(message)
-                        else:
-                            st.error(message)
-                    st.info("**Or restart container with:**")
+                parent_dir = os.path.dirname(save_path) if save_path else "/tmp"
+                st.info("""
+                **📌 Note:** Docker containers cannot mount new volumes at runtime. 
+                You need to restart the container with this path mounted.
+                """)
+                
+                with st.expander("🔧 How to mount this path", expanded=True):
+                    st.markdown("**Option 1: Restart with this path**")
                     cmd = generate_restart_command([parent_dir])
                     st.code(cmd, language="bash")
+                    
+                    st.markdown("**Option 2: Add to existing mounts (preserves current mounts)**")
+                    escaped_path = parent_dir.replace(" ", "\\ ") if " " in parent_dir else parent_dir
+                    st.code(f"./restart-spikeagent-with-mounts.sh {escaped_path}", language="bash")
     
     is_npix = st.checkbox("Is it neuropixel data?", value=default_params[2], key="ch1")
     commands = st.text_area("⚙️ Additional inputs", value=default_params[3], height=150)
