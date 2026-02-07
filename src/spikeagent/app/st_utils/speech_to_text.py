@@ -23,10 +23,16 @@ def convert_audio_to_text(audio_bytes: bytes) -> Optional[str]:
     - str: Transcribed text if successful, None otherwise.
     """
     try:
-        # Initialize OpenAI client
-        client = OpenAI(
-            api_key=os.getenv("WHISPER_API_KEY")
-        )
+        # Initialize OpenAI client (fall back to OPENAI_API_KEY if WHISPER_API_KEY not set)
+        api_key = os.getenv("WHISPER_API_KEY") or os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            st.sidebar.error("No API key found. Set OPENAI_API_KEY in your .env file.", icon="🚨")
+            return None
+        client_kwargs = {"api_key": api_key}
+        base_url = os.getenv("OPENAI_API_BASE")
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        client = OpenAI(**client_kwargs)
         
         # Create a temporary file to store the audio bytes
         temp_filename = "temp_audio.wav"
@@ -93,11 +99,16 @@ def convert_text_to_speech(text: str, filename: str = "response.wav") -> Optiona
     Text to convert: <<< {text} >>>'''
 
     try:
-        # Initialize OpenAI client
-        client = OpenAI(
-            base_url=os.getenv("OPENAI_API_BASE"),
-            api_key=os.getenv("OPENAI_API_KEY")
-        )
+        # Initialize OpenAI client (only pass base_url if explicitly configured)
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            st.sidebar.error("No API key found. Set OPENAI_API_KEY in your .env file.", icon="🚨")
+            return None
+        client_kwargs = {"api_key": api_key}
+        base_url = os.getenv("OPENAI_API_BASE")
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        client = OpenAI(**client_kwargs)
         
         # Show spinner while processing
         with st.spinner("Generating voice response..."):

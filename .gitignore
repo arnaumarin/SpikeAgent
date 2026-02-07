@@ -1,0 +1,32 @@
+# Secrets
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE / editor
+.claude/
+.vscode/
+.idea/
+*.swp
+
+# macOS
+.DS_Store
+
+# Test notebooks with credentials
+**/testllm.ipynb
+
+# Runtime artifacts
+tmp/
+history/
+data/

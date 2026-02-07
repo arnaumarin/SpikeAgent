@@ -69,7 +69,7 @@ def _format_image(image_url: str) -> Dict:
     match = re.match(regex, image_url)
     if match is None:
         raise ValueError(
-            "Anthropic/Harvard endpoint only supports base64-encoded images currently."
+            "Custom Anthropic endpoint only supports base64-encoded images currently."
         )
     return {
         "type": "base64",
@@ -295,7 +295,7 @@ def convert_to_anthropic_tool(
 
 
 def _create_usage_metadata() -> UsageMetadata:
-    # If Harvard endpoint doesn't provide usage metadata, we can return empty.
+    # If custom endpoint doesn't provide usage metadata, return empty.
     return UsageMetadata(
         input_tokens=0,
         output_tokens=0,
@@ -303,8 +303,8 @@ def _create_usage_metadata() -> UsageMetadata:
     )
 
 
-class ChatAnthropic_H(BaseChatModel):
-    """A modified ChatAnthropic class that uses the Harvard endpoint."""
+class ChatAnthropicCustom(BaseChatModel):
+    """A modified ChatAnthropic class that uses a custom Bedrock-compatible endpoint."""
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -316,9 +316,8 @@ class ChatAnthropic_H(BaseChatModel):
     default_request_timeout: Optional[float] = Field(None, alias="timeout")
     max_retries: int = 2
     stop_sequences: Optional[List[str]] = Field(None, alias="stop")
-    # Instead of anthropic_api_url, we use Harvard endpoint.
-    harvard_api_url: str = "https://go.apis.huit.harvard.edu/ais-bedrock-llm/v1"
-    harvard_api_key: str = Field(default_factory=from_env(["HARVARD_API_KEY"], default=""))
+    custom_api_url: str = Field(default_factory=from_env(["CUSTOM_ANTHROPIC_API_URL"], default=""))
+    custom_api_key: str = Field(default_factory=from_env(["CUSTOM_ANTHROPIC_API_KEY"], default=""))
     default_headers: Optional[Mapping[str, str]] = None
     model_kwargs: Dict[str, Any] = Field(default_factory=dict)
     streaming: bool = False
@@ -367,7 +366,7 @@ class ChatAnthropic_H(BaseChatModel):
         # Setup headers
         self._headers = {
             "Content-Type": "application/json",
-            "x-api-key": self.harvard_api_key,
+            "x-api-key": self.custom_api_key,
         }
         if self.default_headers:
             self._headers.update(self.default_headers)
@@ -443,7 +442,7 @@ class ChatAnthropic_H(BaseChatModel):
         **kwargs: Any,
     ) -> ChatResult:
         payload = self._get_request_payload(messages, stop=stop, **kwargs)
-        response = requests.post(self.harvard_api_url, headers=self._headers, json=payload)
+        response = requests.post(self.custom_api_url, headers=self._headers, json=payload)
         response_data = response.json()
         return self._format_output(response_data)
 
@@ -462,7 +461,7 @@ class ChatAnthropic_H(BaseChatModel):
 
             # Make the HTTP request
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(self.harvard_api_url, headers=self._headers, json=payload)
+                response = await client.post(self.custom_api_url, headers=self._headers, json=payload)
 
                 # Log response details
                 #print("Response status code:", response.status_code)
@@ -492,7 +491,7 @@ class ChatAnthropic_H(BaseChatModel):
         tool_choice: Optional[Union[Dict[str, str], Literal["any", "auto"], str]] = None,
         **kwargs: Any,
     ) -> Runnable[LanguageModelInput, BaseMessage]:
-        # Still implemented, but may not work as expected with Harvard endpoint
+        # Still implemented, but may not work as expected with custom endpoint
         formatted_tools = [convert_to_anthropic_tool(tool) for tool in tools]
         if not tool_choice:
             pass
@@ -540,6 +539,5 @@ class ChatAnthropic_H(BaseChatModel):
             Sequence[Union[Dict[str, Any], Type, Callable, BaseTool]]
         ] = None,
     ) -> int:
-        # Not supported by Harvard endpoint
-        # Return a dummy value or implement logic if supported
+        # Not supported by custom endpoint
         return 0

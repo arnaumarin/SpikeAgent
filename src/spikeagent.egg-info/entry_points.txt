@@ -1,2 +1,0 @@
-[console_scripts]
-spikeagent = spikeagent.app.main:main

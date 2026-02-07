@@ -3,10 +3,10 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv(override=True)
-from spikeagent.app.tool.utils.custom_class_gemini import ChatGoogleGenerativeAI_H
+from spikeagent.app.tool.utils.custom_class_gemini import ChatGoogleGenerativeAICustom
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
-from spikeagent.app.tool.utils.custom_class import ChatAnthropic_H
+from spikeagent.app.tool.utils.custom_class import ChatAnthropicCustom
 # Use a relative path to locate the documentation file
 import pathlib
 doc_path = pathlib.Path(__file__).parent.parent.parent / "app" / "spikeinterface_api_docs" / "merged_api.txt"
@@ -45,37 +45,37 @@ def ask_spikeinterface_doc(question):
         "The answer should be detailed and include all the necessary information"
         f"Question: {question}\n"
     )
-    
-    # Try to use available API keys in priority order: OpenAI > Anthropic > Google
+
+    # Try to use available API keys in priority order: OpenAI > Custom Anthropic > Anthropic > Custom Google > Google
     if os.getenv("OPENAI_API_KEY"):
         openai_base_url = os.getenv("OPENAI_API_BASE")
         kwargs = {"model": "gpt-4.1", "temperature": 0}
         if openai_base_url:
             kwargs["base_url"] = openai_base_url
         llm = ChatOpenAI(**kwargs)
-    elif os.getenv("HARVARD_API_KEY"):
-        llm = ChatAnthropic_H(model="claude-3-5-sonnet-20240620-v1", temperature=0)
+    elif os.getenv("CUSTOM_ANTHROPIC_API_KEY") and os.getenv("CUSTOM_ANTHROPIC_API_URL"):
+        llm = ChatAnthropicCustom(model="claude-3-5-sonnet-20240620-v1", temperature=0)
     elif os.getenv("ANTHROPIC_API_KEY"):
         llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
-    elif os.getenv("HARVARD_API_KEY_GOOGLE") and os.getenv("GOOGLE_BASE_URL_HARVARD"):
-        llm = ChatGoogleGenerativeAI_H(
+    elif os.getenv("CUSTOM_GOOGLE_API_KEY") and os.getenv("CUSTOM_GOOGLE_API_ENDPOINT"):
+        llm = ChatGoogleGenerativeAICustom(
             model="gemini-2.5-pro",
             temperature=0,
-            client_options={"api_endpoint": os.getenv("GOOGLE_BASE_URL_HARVARD")},
-            google_api_key=os.getenv("HARVARD_API_KEY_GOOGLE"),
+            client_options={"api_endpoint": os.getenv("CUSTOM_GOOGLE_API_ENDPOINT")},
+            google_api_key=os.getenv("CUSTOM_GOOGLE_API_KEY"),
             thinking_budget=200
         )
     elif os.getenv("GOOGLE_API_KEY"):
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
     else:
         raise ValueError("No API key found. Please set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_API_KEY in your .env file.")
-    
+
     response = llm.invoke(prompt)
 
     note_for_agent = """
 
 NOTE TO SpikeAgent:
-The information above was retrieved from the documentation. you should adapt the code based on the current context 
+The information above was retrieved from the documentation. you should adapt the code based on the current context
 If you need more information, you can use the `python_repl` tool to import the module and then use `help(module_name)` function to understand specific functions to get more in detail
 """
     return f"{response.content}{note_for_agent}"

@@ -1026,7 +1026,7 @@ def _is_event_loop_running() -> bool:
         return False
 
 
-class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
+class ChatGoogleGenerativeAICustom(_BaseGoogleGenerativeAI, BaseChatModel):
     """`Google AI` chat models integration.
 
     Instantiation:
@@ -1034,13 +1034,13 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
 
             1. The ``GOOGLE_API_KEY`` environment variable set with your API key, or
             2. Pass your API key using the google_api_key kwarg
-            to the ChatGoogleGenerativeAI_H constructor.
+            to the ChatGoogleGenerativeAICustom constructor.
 
         .. code-block:: python
 
-            from langchain_google_genai import ChatGoogleGenerativeAI_H
+            from langchain_google_genai import ChatGoogleGenerativeAICustom
 
-            llm = ChatGoogleGenerativeAI_H(model="gemini-2.0-flash-001")
+            llm = ChatGoogleGenerativeAICustom(model="gemini-2.0-flash-001")
             llm.invoke("Write me a ballad about LangChain")
 
     Invoke:
@@ -1113,7 +1113,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
             from google import genai
             from google.genai import types
             import time
-            from langchain_google_genai import ChatGoogleGenerativeAI_H
+            from langchain_google_genai import ChatGoogleGenerativeAICustom
             from langchain_core.messages import HumanMessage
 
             client = genai.Client()
@@ -1140,7 +1140,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
             )
 
             # Query with LangChain
-            llm = ChatGoogleGenerativeAI_H(
+            llm = ChatGoogleGenerativeAICustom(
                 model=model,
                 cached_content=cache.name,
             )
@@ -1155,7 +1155,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
             from google import genai
             from google.genai.types import CreateCachedContentConfig, Content, Part
             import time
-            from langchain_google_genai import ChatGoogleGenerativeAI_H
+            from langchain_google_genai import ChatGoogleGenerativeAICustom
             from langchain_core.messages import HumanMessage
 
             client = genai.Client()
@@ -1196,7 +1196,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
             )
 
             # Query with LangChain
-            llm = ChatGoogleGenerativeAI_H(
+            llm = ChatGoogleGenerativeAICustom(
                 model=model,
                 cached_content=cache.name,
             )
@@ -1250,7 +1250,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
         .. code-block:: python
 
             from google.ai.generativelanguage_v1beta.types import Tool as GenAITool
-            llm = ChatGoogleGenerativeAI_H(model="gemini-2.0-flash-exp")
+            llm = ChatGoogleGenerativeAICustom(model="gemini-2.0-flash-exp")
             resp = llm.invoke(
                 "When is the next total solar eclipse in US?",
                 tools=[GenAITool(google_search={})],
@@ -1376,7 +1376,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
                 )
                 logger.warning(
                     f"Unexpected argument '{arg}' "
-                    f"provided to ChatGoogleGenerativeAI_H.{suggestion}"
+                    f"provided to ChatGoogleGenerativeAICustom.{suggestion}"
                 )
         super().__init__(**kwargs)
 
@@ -1431,7 +1431,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
 
         additional_headers = self.additional_headers or {}
         self.default_metadata = tuple(additional_headers.items())
-        client_info = get_client_info(f"ChatGoogleGenerativeAI_H:{self.model}")
+        client_info = get_client_info(f"ChatGoogleGenerativeAICustom:{self.model}")
         google_api_key = None
         if not self.credentials:
             if isinstance(self.google_api_key, SecretStr):
@@ -1506,7 +1506,7 @@ class ChatGoogleGenerativeAI_H(_BaseGoogleGenerativeAI, BaseChatModel):
             
             # For API key authentication with async client
             client_kwargs = {
-                "client_info": get_client_info(f"ChatGoogleGenerativeAI_H:{self.model}"),
+                "client_info": get_client_info(f"ChatGoogleGenerativeAICustom:{self.model}"),
                 "client_options": client_options,
                 "transport": transport,
             }
