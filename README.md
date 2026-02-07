@@ -19,15 +19,7 @@ SpikeAgent is a web-based AI assistant that streamlines the spike sorting pipeli
 - **Python 3.11+** (recommended via [conda](https://docs.conda.io/en/latest/miniconda.html))
 - **At least one API key** from [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/), or [Google](https://makersuite.google.com/app/apikey)
 
-### Option 1: pip (recommended)
-
-```bash
-conda create -n spikeagent python=3.11 -y
-conda activate spikeagent
-pip install spikeagent
-```
-
-Or install from source:
+### Option 1: Install from source (recommended)
 
 ```bash
 git clone https://github.com/arnaumarin/SpikeAgent.git
